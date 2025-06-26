@@ -21,11 +21,17 @@ def download_video(url: str, target_format: str = "mp4") -> list[str]:
     downloaded_files = []
 
     ydl_opts = {
-        "outtmpl": "downloads/%(title)s.%(ext)s",
-        "quiet": True,
-        "noplaylist": False,
-        "format": "bestaudio/best" if target_format == "mp3" else "bestvideo+bestaudio",
-    }
+    "outtmpl": "downloads/%(title)s.%(ext)s",
+    "quiet": True,
+    "noplaylist": False,
+    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",  # force mp4 streams
+    "merge_output_format": "mp4",  # force final merged output to be .mp4
+    "postprocessors": [{
+        "key": "FFmpegVideoConvertor",
+        "preferedformat": "mp4"  # use correct spelling for older yt_dlp, preferredformat
+    }],
+}
+
 
     if target_format == "mp3":
         ydl_opts["postprocessors"] = [{
