@@ -3,37 +3,49 @@ from yt_dlp import YoutubeDL
 import os
 import re
 import ffmpeg
-from tempfile import NamedTemporaryFile
 
-# Author and favicon setup
-st.set_page_config(page_title="Free YouTube Downloader", page_icon="🎬")
+# App config
+st.set_page_config(page_title="🎬 YouTube Downloader & Editor", page_icon="🎬")
 st.title("🎬 Free YouTube Downloader & Editor")
 
-# Make sure downloads folder exists
+# Ensure download directory
 os.makedirs("downloads", exist_ok=True)
 
-# Sanitize for valid file names
-def sanitize_filename(filename: str) -> str:
-    return re.sub(r'[\\/*?:"<>|？]', "_", filename)
+# Helpers
+def trim_with_ffmpeg(input_path: str, start: str, end: str) -> str:
+    base, ext = os.path.splitext(input_path)
+    output_path = f"{base}_trimmed{ext}"
+    ffmpeg.input(input_path, ss=start, to=end).output(output_path).run()
+    return output_path
 
-# Download YouTube video or playlist
-def download_video(url: str, target_format: str = "mp4") -> list[str]:
+def sanitize_filename(name: str) -> str:
+    return re.sub(r'[\\/*?:"<>|]', "_", name)
+
+def fetch_video_titles(url: str) -> list[str]:
+    with YoutubeDL({'quiet': True, 'extract_flat': True}) as ydl:
+        info = ydl.extract_info(url, download=False)
+        if 'entries' in info:
+            return [sanitize_filename(e['title']) for e in info['entries']]
+        else:
+            return [sanitize_filename(info['title'])]
+
+def download_video(url: str, target_format: str = "mp4", selected_titles: list[str] = None) -> list[str]:
     downloaded_files = []
 
     ydl_opts = {
-    "outtmpl": "downloads/%(title)s.%(ext)s",
-    "quiet": True,
-    "noplaylist": False,
-    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",  # force mp4 streams
-    "merge_output_format": "mp4",  # force final merged output to be .mp4
-    "postprocessors": [{
-        "key": "FFmpegVideoConvertor",
-        "preferedformat": "mp4"  # use correct spelling for older yt_dlp, preferredformat
-    }],
-}
-
+        "outtmpl": "downloads/%(title)s.%(ext)s",
+        "quiet": True,
+        "noplaylist": False,
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+        "merge_output_format": "mp4",
+        "postprocessors": [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4"
+        }],
+    }
 
     if target_format == "mp3":
+        ydl_opts["format"] = "bestaudio"
         ydl_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
@@ -46,11 +58,14 @@ def download_video(url: str, target_format: str = "mp4") -> list[str]:
 
         for entry in entries:
             title = sanitize_filename(entry.get("title", "video"))
-            ext = "mp3" if target_format == "mp3" else entry.get("ext", "webm")
+            if selected_titles and title not in selected_titles:
+                continue
+            ext = "mp3" if target_format == "mp3" else "mp4"
             filepath = os.path.join("downloads", f"{title}.{ext}")
             downloaded_files.append(filepath)
 
     return downloaded_files
+
 
 # Convert video format
 def convert_format(input_path: str, target_format: str, base_name: str) -> str:
@@ -75,13 +90,25 @@ def merge_videos(paths: list[str]) -> str:
     ffmpeg.input(list_path, format="concat", safe=0).output(output_path, c="copy").run()
     return output_path
 
+# Trim video
+def trim_video(input_path: str, start_time: str, end_time: str, base_name: str) -> str:
+    output_path = os.path.join("downloads", f"{base_name}_trimmed.mp4")
+    ffmpeg.input(input_path, ss=start_time, to=end_time).output(output_path).run()
+    return output_path
+
 # --- UI Begins ---
+
 option = st.radio("Select operation:", ["Download", "Convert Format", "Extract Audio", "Merge Videos"])
 
 # Download section
 if option == "Download":
     url = st.text_input("Enter YouTube video or playlist URL")
     target_format = st.selectbox("Choose format", ["mp4", "mp3"])
+
+    st.markdown("**Optional: Trim Video**")
+    start_time = st.text_input("Start time (HH:MM:SS)", value="00:00:00")
+    end_time = st.text_input("End time (HH:MM:SS)", value="")
+    apply_trim = st.checkbox("Trim video after download")
 
     if st.button("Download"):
         if url:
@@ -91,9 +118,18 @@ if option == "Download":
                     paths = download_video(url, target_format)
 
                     for path in paths:
-                        st.success(f"✅ Downloaded: {os.path.basename(path)}")
-                        with open(path, "rb") as f:
-                            st.download_button("Download", f, file_name=os.path.basename(path))
+                        final_path = path
+                        base_name = os.path.splitext(os.path.basename(path))[0]
+
+                        if apply_trim and end_time:
+                            status.write(f"✂️ Trimming from {start_time} to {end_time}...")
+                            final_path = trim_video(path, start_time, end_time, base_name)
+                            st.success(f"✅ Trimmed video: {os.path.basename(final_path)}")
+                        else:
+                            st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
+
+                        with open(final_path, "rb") as f:
+                            st.download_button("Download", f, file_name=os.path.basename(final_path))
 
                     status.update(label="✅ All Done", state="complete", expanded=False)
                 except Exception as e:
@@ -101,8 +137,6 @@ if option == "Download":
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter a valid URL.")
-
-# Convert section
 elif option == "Convert Format":
     uploaded = st.file_uploader("Upload video", type=["mp4", "avi", "mkv", "webm"])
     target_format = st.selectbox("Convert to", ["mp4", "avi", "mkv"])
