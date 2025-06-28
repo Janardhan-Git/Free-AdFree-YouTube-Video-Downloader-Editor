@@ -5,8 +5,8 @@ import re
 import ffmpeg
 
 # App config
-st.set_page_config(page_title="🎬 YouTube Downloader & Editor", page_icon="🎬")
-st.title("🎬 Free YouTube Downloader & Editor")
+st.set_page_config(page_title="Free, Ad Free YouTube Video Downloader & Editor", page_icon="🎬")
+st.title("🎬 Free, Ad Free YouTube Video Downloader & Editor")
 
 # Ensure download directory
 os.makedirs("downloads", exist_ok=True)
