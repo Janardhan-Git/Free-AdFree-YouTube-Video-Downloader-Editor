@@ -122,59 +122,37 @@ if option == "Download":
     end_time = st.text_input("End time (HH:MM:SS)", value="")
     apply_trim = st.checkbox("Trim video after download")
 
-    if st.button("Download"):
-        if url:
-            with st.status("Starting download...", expanded=True) as status:
-                try:
-                    status.write("🔗 Downloading...")
-                    paths = download_video(url, target_format)
+if st.button("Download"):
+    if url:
+        with st.status("Starting download...", expanded=True) as status:
+            try:
+                status.write("🔗 Downloading...")
+                paths = download_video(url, target_format)
 
-                    for path in paths:
-                        final_path = path
-                        base_name = os.path.splitext(os.path.basename(path))[0]
+                for path in paths:
+                    final_path = path
+                    base_name = os.path.splitext(os.path.basename(path))[0]
 
-                        if apply_trim and end_time:
-                            status.write(f"✂️ Trimming from {start_time} to {end_time}...")
-                            final_path = trim_video(path, start_time, end_time, base_name)
-                            st.success(f"✅ Trimmed video: {os.path.basename(final_path)}")
-                        else:
-                            st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
+                    if apply_trim and end_time:
+                        status.write(f"✂️ Trimming {base_name} from {start_time} to {end_time}...")
+                        final_path = trim_video(path, start_time, end_time, base_name)
+                        st.success(f"✅ Trimmed: {os.path.basename(final_path)}")
+                    else:
+                        st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
 
-                        with open(final_path, "rb") as f:
-                            st.download_button("Download", f, file_name=os.path.basename(final_path))
+                    with open(final_path, "rb") as f:
+                        st.download_button("Download", f, file_name=os.path.basename(final_path), key=final_path)
 
-                    status.update(label="✅ All Done", state="complete", expanded=False)
-                except Exception as e:
-                    status.update(label="❌ Error", state="error")
-                    st.error(f"Error: {e}")
-        else:
-            st.warning("Please enter a valid URL.")
-elif option == "Convert Format":
-    uploaded = st.file_uploader("Upload video", type=["mp4", "avi", "mkv", "webm"])
-    target_format = st.selectbox("Convert to", ["mp4", "avi", "mkv"])
+                status.update(label="✅ All Done", state="complete", expanded=False)
 
-    if st.button("Convert"):
-        if uploaded:
-            with st.status("Converting...", expanded=True) as status:
-                try:
-                    filename = sanitize_filename(uploaded.name)
-                    base_name = os.path.splitext(filename)[0]
-                    tmp_path = os.path.join("downloads", filename)
+            except Exception as e:
+                status.update(label="❌ Error", state="error")
+                st.error(f"Error: {e}")
+    else:
+        st.warning("Please enter a valid URL.")
 
-                    with open(tmp_path, "wb") as f:
-                        f.write(uploaded.read())
-
-                    output_path = convert_format(tmp_path, target_format, base_name)
-                    st.success(f"✅ Converted: {os.path.basename(output_path)}")
-                    with open(output_path, "rb") as f:
-                        st.download_button("Download", f, file_name=os.path.basename(output_path))
-
-                    status.update(label="✅ Done", state="complete", expanded=False)
-                except Exception as e:
-                    status.update(label="❌ Error", state="error")
-                    st.error(f"Error: {e}")
-        else:
-            st.warning("Please upload a file")
+        
+                                                            
 
 # Extract Audio section
 elif option == "Extract Audio":
