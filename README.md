@@ -1,4 +1,4 @@
-# 🎬 YouTube Downloader & Editor (Streamlit App)
+# 🎬 Free, Ad-Free YouTube Downloader & Editor (Streamlit App)
 
 This is a simple, powerful, and free Streamlit-based application to **download**, **convert**, **extract audio**, and **merge** YouTube videos. It supports **single videos**, **entire playlists**, and **batch downloads**, along with format conversion and audio extraction.
 
@@ -19,7 +19,7 @@ This is a simple, powerful, and free Streamlit-based application to **download**
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/Janardhan-Git/Youtube-downloader-app.git
+git clone https://github.com/Janardhan-Git/Free-AdFree-YouTube-Video-Downloader-Editor
 cd Youtube-downloader-app
 
 # 2. Create virtual environment and activate
