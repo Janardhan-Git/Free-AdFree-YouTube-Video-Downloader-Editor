@@ -4,6 +4,15 @@ import os
 import re
 import ffmpeg
 import unicodedata
+import zipfile
+
+def create_zip(file_paths: list[str], zip_name="downloads/all_videos.zip") -> str:
+    with zipfile.ZipFile(zip_name, 'w') as zipf:
+        for file_path in file_paths:
+            arcname = os.path.basename(file_path)
+            zipf.write(file_path, arcname=arcname)
+    return zip_name
+
 
 # ✅ Sanitize filename safely (no duplicates)
 def sanitize_filename(name: str) -> str:
@@ -122,39 +131,52 @@ if option == "Download":
     end_time = st.text_input("End time (HH:MM:SS)", value="")
     apply_trim = st.checkbox("Trim video after download")
 
-if st.button("Download"):
+    selected_titles = None
     if url:
-        with st.status("Starting download...", expanded=True) as status:
-            try:
-                status.write("🔗 Downloading...")
-                paths = download_video(url, target_format)
+        if "playlist" in url or "list=" in url:
+            titles = fetch_video_titles(url)
+            selected_titles = st.multiselect("Select videos to download from playlist:", titles, default=titles)
 
-                for path in paths:
-                    final_path = path
-                    base_name = os.path.splitext(os.path.basename(path))[0]
+    if st.button("Download"):
+        if url:
+            with st.status("Starting download...", expanded=True) as status:
+                try:
+                    status.write("🔗 Downloading...")
+                    paths = download_video(url, target_format, selected_titles)
 
-                    if apply_trim and end_time:
-                        status.write(f"✂️ Trimming {base_name} from {start_time} to {end_time}...")
-                        final_path = trim_video(path, start_time, end_time, base_name)
-                        st.success(f"✅ Trimmed: {os.path.basename(final_path)}")
-                    else:
-                        st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
+                    processed_paths = []
 
-                    with open(final_path, "rb") as f:
-                        st.download_button("Download", f, file_name=os.path.basename(final_path), key=final_path)
+                    for path in paths:
+                        final_path = path
+                        base_name = os.path.splitext(os.path.basename(path))[0]
 
-                status.update(label="✅ All Done", state="complete", expanded=False)
+                        if apply_trim and end_time:
+                            status.write(f"✂️ Trimming {base_name} from {start_time} to {end_time}...")
+                            final_path = trim_video(path, start_time, end_time, base_name)
+                            st.success(f"✅ Trimmed: {os.path.basename(final_path)}")
+                        else:
+                            st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
 
-            except Exception as e:
-                status.update(label="❌ Error", state="error")
-                st.error(f"Error: {e}")
-    else:
-        st.warning("Please enter a valid URL.")
+                        with open(final_path, "rb") as f:
+                            st.download_button("Download", f, file_name=os.path.basename(final_path), key=final_path)
 
-        
-                                                            
+                        processed_paths.append(final_path)
 
+                    status.update(label="✅ All Done", state="complete", expanded=False)
+
+                except Exception as e:
+                    status.update(label="❌ Error", state="error")
+                    st.error(f"Error: {e}")
+
+            if processed_paths:
+                zip_path = create_zip(processed_paths)
+                with open(zip_path, "rb") as f:
+                    st.download_button("📦 Download All as ZIP", f, file_name="all_videos.zip")
+        else:
+            st.warning("Please enter a valid URL.")
+                                                     
 # Extract Audio section
+
 elif option == "Extract Audio":
     url = st.text_input("YouTube URL")
     uploaded = st.file_uploader("Or upload video file", type=["mp4", "avi", "webm", "mkv"])
