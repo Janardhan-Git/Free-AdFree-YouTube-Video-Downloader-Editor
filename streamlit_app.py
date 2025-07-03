@@ -53,11 +53,15 @@ def download_video(url: str, target_format: str = "mp4", selected_titles: list[s
     downloaded_files = []
 
     ydl_opts = {
-        "outtmpl": "downloads/%(title)s.%(ext)s",
-        "quiet": True,
-        "noplaylist": False,
-        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+    "outtmpl": "downloads/%(title)s.%(ext)s",
+    "quiet": True,
+    "noplaylist": False,
+    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+    "http_headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
+}
+
 
     if target_format == "mp3":
         ydl_opts["format"] = "bestaudio"
@@ -137,44 +141,46 @@ if option == "Download":
             titles = fetch_video_titles(url)
             selected_titles = st.multiselect("Select videos to download from playlist:", titles, default=titles)
 
-    if st.button("Download"):
-        if url:
-            with st.status("Starting download...", expanded=True) as status:
-                try:
-                    status.write("🔗 Downloading...")
-                    paths = download_video(url, target_format, selected_titles)
 
-                    processed_paths = []
+if st.button("Download"):
+    if not url.strip():
+        st.warning("Please enter a valid URL.")
+    else:
+        processed_paths = []  # ✅ Initialize before the try block
 
-                    for path in paths:
-                        final_path = path
-                        base_name = os.path.splitext(os.path.basename(path))[0]
+        with st.status("Starting download...", expanded=True) as status:
+            try:
+                status.write("🔗 Downloading...")
+                paths = download_video(url, target_format, selected_titles)
 
-                        if apply_trim and end_time:
-                            status.write(f"✂️ Trimming {base_name} from {start_time} to {end_time}...")
-                            final_path = trim_video(path, start_time, end_time, base_name)
-                            st.success(f"✅ Trimmed: {os.path.basename(final_path)}")
-                        else:
-                            st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
+                for path in paths:
+                    final_path = path
+                    base_name = os.path.splitext(os.path.basename(path))[0]
 
-                        with open(final_path, "rb") as f:
-                            st.download_button("Download", f, file_name=os.path.basename(final_path), key=final_path)
+                    if apply_trim and end_time:
+                        status.write(f"✂️ Trimming {base_name} from {start_time} to {end_time}...")
+                        final_path = trim_video(path, start_time, end_time, base_name)
+                        st.success(f"✅ Trimmed: {os.path.basename(final_path)}")
+                    else:
+                        st.success(f"✅ Downloaded: {os.path.basename(final_path)}")
 
-                        processed_paths.append(final_path)
+                    with open(final_path, "rb") as f:
+                        st.download_button("Download", f, file_name=os.path.basename(final_path), key=final_path)
 
-                    status.update(label="✅ All Done", state="complete", expanded=False)
+                    processed_paths.append(final_path)
 
-                except Exception as e:
-                    status.update(label="❌ Error", state="error")
-                    st.error(f"Error: {e}")
+                status.update(label="✅ All Done", state="complete", expanded=False)
 
-            if processed_paths:
-                zip_path = create_zip(processed_paths)
-                with open(zip_path, "rb") as f:
-                    st.download_button("📦 Download All as ZIP", f, file_name="all_videos.zip")
-        else:
-            st.warning("Please enter a valid URL.")
-                                                     
+            except Exception as e:
+                status.update(label="❌ Error", state="error")
+                st.error(f"Error: {e}")
+
+        if processed_paths:
+            zip_path = create_zip(processed_paths)
+            with open(zip_path, "rb") as f:
+                st.download_button("📦 Download All as ZIP", f, file_name="all_videos.zip")
+
+                                                 
 # Extract Audio section
 
 elif option == "Extract Audio":

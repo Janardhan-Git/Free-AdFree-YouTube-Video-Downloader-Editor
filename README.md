@@ -31,3 +31,19 @@ pip install -r requirements.txt
 
 # 4. Run the Streamlit app
 streamlit run streamlit_app.py
+
+
+⚠️ Disclaimer
+This project is intended for educational and personal use only.
+
+Downloading videos from YouTube may violate YouTube’s Terms of Service. It is your responsibility to ensure that you have the legal right to download and use any content accessed through this application.
+
+By using this tool, you agree:
+
+Not to download copyrighted material without proper authorization.
+
+Not to distribute or use downloaded content for commercial purposes unless explicitly permitted by the content owner.
+
+To comply with all applicable local, national, and international laws.
+
+The developer of this project assumes no liability for any misuse of this tool.
