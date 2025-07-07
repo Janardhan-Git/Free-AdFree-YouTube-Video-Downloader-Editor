@@ -48,6 +48,19 @@ def fetch_video_titles(url: str) -> list[str]:
         else:
             return [sanitize_filename(info['title'])]
 
+with st.expander("ℹ️ Why some videos can't be downloaded?"):
+    st.markdown("""
+- Some YouTube videos require you to be **signed in** (age-restricted, private, region-locked, etc.).
+- These videos trigger a **403 Forbidden** or "sign in to confirm you're not a bot" error.
+- To download such videos, you have to **upload your `cookies.txt`** from your browser, once I enable this feature.
+
+See instructions [here](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp).
+    """)
+
+with st.expander("✅ You can use the below features without restriction"):
+    st.markdown("""
+- Extract Audio, Merge Videos
+    """)
 
 def download_video(url: str, target_format: str = "mp4", selected_titles: list[str] = None) -> list[str]:
     downloaded_files = []
