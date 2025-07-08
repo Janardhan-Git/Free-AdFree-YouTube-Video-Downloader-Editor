@@ -112,10 +112,19 @@ def download_video(url: str, target_format: str = "mp4", selected_titles: list[s
     return downloaded_files
 
 # Extract audio
-def extract_audio(input_path: str, base_name: str) -> str:
-    output_path = os.path.join("downloads", f"{base_name}.mp3")
-    ffmpeg.input(input_path).output(output_path).run()
+def extract_audio(input_path: str, base_name: str, start: str = None, end: str = None) -> str:
+    output_path = os.path.join("downloads", f"{base_name}_audio.mp3")
+
+    kwargs = {}
+    if start:
+        kwargs["ss"] = start
+    if end:
+        kwargs["to"] = end
+
+    ffmpeg.input(input_path, **kwargs).output(output_path).run()
     return output_path
+
+
 
 # Merge multiple videos
 def merge_videos(paths: list[str]) -> str:
@@ -199,6 +208,8 @@ if st.button("Download"):
 elif option == "Extract Audio":
     url = st.text_input("YouTube URL")
     uploaded = st.file_uploader("Or upload video file", type=["mp4", "avi", "webm", "mkv"])
+    start_time = st.text_input("Start time (HH:MM:SS)", value="00:00:00")
+    end_time = st.text_input("End time (HH:MM:SS)", value="")
 
     if st.button("Extract Audio"):
         with st.status("Extracting...", expanded=True) as status:
@@ -219,7 +230,8 @@ elif option == "Extract Audio":
                     st.stop()
 
                 status.write("🎧 Extracting audio...")
-                audio_path = extract_audio(filepath, base_name)
+                audio_path = extract_audio(filepath, base_name, start=start_time, end=end_time if end_time else None)
+
                 st.success(f"✅ Audio ready: {os.path.basename(audio_path)}")
                 with open(audio_path, "rb") as f:
                     st.download_button("Download Audio", f, file_name=os.path.basename(audio_path))

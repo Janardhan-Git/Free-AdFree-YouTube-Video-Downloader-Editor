@@ -11,3 +11,4 @@ __pycache__/
 # Ignore temporary/merge files
 merge_list.txt
 downloads/
+streamlit_app - Copy
